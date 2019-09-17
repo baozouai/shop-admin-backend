@@ -2,6 +2,7 @@
 const kits = require('../kits/kits.js');
 const path = require('path');
 const urlobj = require('url');
+const db = require('./db')
 let tbname = 'goods';
 //1 获取商品列表
 exports.getlist = (req, callback) => {
@@ -24,7 +25,7 @@ exports.getlist = (req, callback) => {
 			sql += ` where a.title like '%${searchValue}%' `;
 		}
 		sql += `order by id desc limit ${data.skipCount},${data.pageSize} `;
-		execQuery(req, sql, (err, data1) => {
+		db.query(sql, (err, data1) => {
 			if (err) {
 				callback(err)
 			}
@@ -35,7 +36,6 @@ exports.getlist = (req, callback) => {
 
 // 5 新增 商品
 exports.add = (req, callback) => {
-	console.log(req.body)
 	let shorturl = '';
 	// 封面图片
 	if (req.body.imgList && req.body.imgList.length > 0) {
@@ -86,7 +86,7 @@ exports.add = (req, callback) => {
 				 ,${req.body.sell_price} /* sell_price - DECIMAL(9, 2)*/
 				);`;
 
-	req.db.driver.execQuery(sql, (err,data) => {
+	db.query(sql, (err,data) => {
 		if (err) {
 			return callback(err);
 		}
@@ -122,7 +122,7 @@ exports.add = (req, callback) => {
 							VALUES
 							${sqlValues}`;
 
-		req.db.driver.execQuery(albumSql, err => {
+		db.query(albumSql, err => {
 			if (err) {
 				return callback(err);
 			}
@@ -138,7 +138,7 @@ exports.getgoodsmodel = (req, callback) => {
 	let id = req.params.id;
 	// 查询商品sql语句
 	let articleSql = `select * from ${tbname} where id=${id}`;
-	req.db.driver.execQuery(articleSql, (err1, data1) => {
+	db.query(articleSql, (err1, data1) => {
 		if (err1) {
 			return callback(err1);
 		}
@@ -150,7 +150,7 @@ exports.getgoodsmodel = (req, callback) => {
 
 		// 查询附件sql语句
 		let attacheSql = `select * from albums where goods_id=${id}`;
-		req.db.driver.execQuery(attacheSql, (err2, data2) => {
+		db.query(attacheSql, (err2, data2) => {
 			if (err2) {
 				return callback(err2);
 			}
@@ -228,13 +228,13 @@ exports.edit = (req, callback) => {
 				 ,update_time = NOW() 				 		
 				WHERE
 				  id = ${artid};`;
-	req.db.driver.execQuery(sql, (err, data) => {
+	db.query(sql, (err, data) => {
 		if (err) {
 			return callback(err);
 		}
 		let delsql = `delete from albums 
 		 					where goods_id =${artid};`;
-		req.db.driver.execQuery(delsql, err1 => {
+		db.query(delsql, err1 => {
 			if (err1) {
 				return callback(err1);
 			}
@@ -264,7 +264,7 @@ exports.edit = (req, callback) => {
 							VALUES
 							${sqlValues}`;
 
-			req.db.driver.execQuery(attacheSql, err2 => {
+			db.query(attacheSql, err2 => {
 				if (err2) {
 					return callback(err2);
 				}
@@ -280,13 +280,13 @@ exports.edit = (req, callback) => {
 exports.del = (req, callback) => {
 	let goodsIds = req.params.ids;
 	let sql = `delete from ${tbname} where id in(${goodsIds})`;
-	req.db.driver.execQuery(sql, err => {
+	db.query(sql, err => {
 		if (err) {
 			return callback(err);
 		}
 		let delsql = `delete from albums 
 		 					where goods_id in (${goodsIds});`;
-		req.db.driver.execQuery(delsql, err => {
+		db.query(delsql, err => {
 			if (err) {
 				return callback(err);
 			}
@@ -295,9 +295,6 @@ exports.del = (req, callback) => {
 		callback(null)
 	});
 }
-
-
-
 
 //辅助方法获取分页总条数
 function execQueryCount(req, sql, callback) {
@@ -318,7 +315,7 @@ function execQueryCount(req, sql, callback) {
 		return;
 	}
 	let skipCount = (pageIndex - 1) * (pageSize - 0);
-	req.db.driver.execQuery(sql, (err, data) => {
+	db.query(sql, (err, data) => {
 		if (err) {
 			callback(err)
 		}
@@ -327,14 +324,4 @@ function execQueryCount(req, sql, callback) {
 	});
 }
 
-//执行sql语句，完成逻辑
-function execQuery(req, sql, callback) {
-	req.db.driver.execQuery(sql, (err, data) => {
-		if (err) {
-			return callback(err)
-		}
-		callback(null, data)
-	});
-
-};
 

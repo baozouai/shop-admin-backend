@@ -1,5 +1,5 @@
 'use strict'
-
+const db = require('./db')
 // 1 获取订单
 exports.getorderlist = (req, callback) => {
 
@@ -38,7 +38,7 @@ exports.getorderlist = (req, callback) => {
 		}
 		sqlQuery += ` order by id desc 
 		limit ${data.skipCount},${data.pageSize} `;
-		execQuery(req, sqlQuery, (err, data1) => {
+		db.query(sqlQuery, (err, data1) => {
 			if (err) {
 				callback(err)
 			}
@@ -66,7 +66,7 @@ function execQueryCount(req, sql, callback) {
 		return;
 	}
 	let skipCount = (pageIndex - 1) * (pageSize - 0);
-	req.db.driver.execQuery(sql, (err, data) => {
+	db.query(sql, (err, data) => {
 		if (err) {
 			callback(err)
 		}
@@ -75,14 +75,4 @@ function execQueryCount(req, sql, callback) {
 	});
 }
 
-//执行sql语句，完成逻辑
-function execQuery(req, sql, callback) {
-	req.db.driver.execQuery(sql, (err, data) => {
-		if (err) {
-			return callback(err)
-		}
-		callback(null, data)
-	});
-
-};
 

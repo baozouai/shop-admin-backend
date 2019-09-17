@@ -1,18 +1,13 @@
 'use strict'
-
 const express = require('express');
-
-let route = express.Router();
-
 const accountCtrl = require('../controllers/accountController.js');
 
-// 1.0 验证登录
+let route = express.Router();
+// 验证登录
 route.post('/account/login', accountCtrl.login);
-
+// 退出
 route.get('/account/logout', accountCtrl.logout);
-
 // 用户列表
 route.get('/account/getlist', accountCtrl.getList);
-
 
 module.exports = route;

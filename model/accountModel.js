@@ -1,16 +1,20 @@
 'use strict'
 const md5 = require('md5');
-
+const db = require('./db')
 //1.0 用户登录验证
 exports.login = (req, callback) => {
 	// 获取用户名和密码
 	let uname = req.body.uname;
+	// 数据库中密码是md5格式，所以这里请求登录的密码转换为md5格式
 	let upwd = md5(req.body.upwd);
+	// 创建查询语句
 	let sql = `select * from manager where user_name='${uname}' and password='${upwd}'`;
-	req.db.driver.execQuery(sql, (err, data) => {
+	db.query(sql, (err, data) => {
 		if (err) {
+			// 如果查询错误，回调返回错误
 			return callback(err)
 		}
+		// 成功的话回调数据信息
 		callback(null, data)
 	})
 }
@@ -29,10 +33,11 @@ exports.getList = (req, callback) => {
 			sql += ` where user_name like '%${searchValue}%' `;
 		}
 		sql += ` order by id desc limit ${data.skipCount},${data.pageSize}`;
-		execQuery(req, sql, (err, data1) => {
+		db.query(sql, (err, data1) => {
 			if (err) {
 				callback(err)
 			}
+
 			callback(null, {...data, message: data1})
 		});
 	});
@@ -57,7 +62,7 @@ function execQueryCount(req, sql, callback) {
 		return;
 	}
 	let skipCount = (pageIndex - 1) * (pageSize - 0);
-	req.db.driver.execQuery(sql, (err, data) => {
+	db.query(sql, (err, data) => {
 		if (err) {
 			callback(err)
 		}
@@ -65,14 +70,3 @@ function execQueryCount(req, sql, callback) {
 		callback(null, {totalcount:data[0].count, pageIndex, pageSize, skipCount })
 	});
 }
-
-//执行sql语句，完成逻辑
-function execQuery(req, sql, callback) {
-	req.db.driver.execQuery(sql, (err, data) => {
-		if (err) {
-			return callback(err)
-		}
-		callback(null, data)
-	});
-
-};
