@@ -47,6 +47,7 @@ model:
 │   └── kits.js // 存放node服务器主域名
 ├── model  // 与数据处理相关的模块 负责与mysql交互
     ├── db.js // 数据库连接相关
+    ├── execQueryCount.js // 辅助方法获取分页总条数
 │   ├── accountModel.js // 账户model
 │   ├── categoryModel.js // 分类model
 │   ├── goodsModel.js // 商品model
