@@ -102,7 +102,7 @@ npm start
 
 #### 数据库账号密码
 
-默认链接数据库的账号密码是`phpstudy`的初始账户密码 `root/root`，如果是其他账号密码需要在`app.js`第`19`行中修改
+默认链接数据库的账号密码是 `user:root, password: root`，如果是其他账号密码需要在`model/db.js`第`6, 7`行中修改
 
 
 
