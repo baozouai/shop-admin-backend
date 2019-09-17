@@ -10,18 +10,22 @@ const ERRORCODE = 1;
 exports.getlist = (req, res) => {
 	goodsModel.getlist(req, (err, data) => {
 		if (err) {
-			res.end(JSON.stringify({ status: ERRORCODE, message: err.message }))
+			// 返回错误状态码和错误信息
+			return res.json({ status: ERRORCODE, message: err.message })
 		}
-		res.end(JSON.stringify({ status: SUCCESSCODE, ...data }))
+		// 成功响应数据
+		res.json({ status: SUCCESSCODE, ...data })
 	})
 }
 
 // 2 上传商品封面图片
 exports.uploadimg = (req, res) => {
-	// 初始化文件解析对象
-	let form = new multiparty.Form();
-	form.uploadDir = './upload/imgs'; //设置文件保存的相对路径
-	form.parse(req, (err, fields, files) => {
+	// 创建文件上传对象
+	let formUpload = new multiparty.Form();
+	// 设置文件上传存储路径
+	formUpload.uploadDir = './upload/imgs';
+	// 调用parse函数实现文件上传
+	formUpload.parse(req, (err, fields, files) => {
 		/*
 		{ file:
 		   [ { fieldName: 'file',
@@ -32,13 +36,22 @@ exports.uploadimg = (req, res) => {
 		    ] 
 		}
 		 */
+		if (err) {
+			// 上传失败，返回错误信息
+			return res.json({
+			   status: ERRORCODE,
+			   message: '文件上传失败'
+		   })
+		}
 		let resObj = {};
+		// 遍历上传的文件
 		for (let i = 0; i < files.file.length; i++) {
 			let item = files.file[i];
 			let path = item.path
 			resObj = { name: item.originalFilename, url: urlobj.resolve(kits.nodeServerDomain, path), shorturl: '/' + path };
 		};
-		res.end(JSON.stringify(resObj));
+		// 成功响应数据
+		res.json(resObj);
 	});
 }
 
@@ -46,20 +59,23 @@ exports.uploadimg = (req, res) => {
 exports.add = (req, res) => {
 	goodsModel.add(req, err => {
 		if (err) {
-			return res.end(JSON.stringify({ status: ERRORCODE, message: err.message }))
+			// 返回错误状态码和错误信息
+			return res.json({ status: ERRORCODE, message: err.message })
 		}
-		res.end(JSON.stringify({ status: SUCCESSCODE, message: '数据插入成功' }))
+		// 数据插入成功
+		res.json({ status: SUCCESSCODE, message: '数据插入成功' })
 	})
 }
-
 
 // 4 获取商品数据
 exports.getgoodsmodel = (req, res) => {
 	goodsModel.getgoodsmodel(req, (err, data) => {
 		if (err) {
-			return res.end(JSON.stringify({ status: ERRORCODE, message: err.message }))
+			// 返回错误状态码和错误信息
+			return res.json({ status: ERRORCODE, message: err.message })
 		}
-		res.end(JSON.stringify({ status: SUCCESSCODE, message: data }))
+		// 成功响应数据
+		res.json({ status: SUCCESSCODE, message: data })
 	})
 }
 
@@ -67,9 +83,11 @@ exports.getgoodsmodel = (req, res) => {
 exports.edit = (req, res) => {
 	goodsModel.edit(req, err => {
 		if (err) {
-			return res.end(JSON.stringify({ status: ERRORCODE, message: err.message }))
+			// 返回错误状态码和错误信息
+			return res.json({ status: ERRORCODE, message: err.message })
 		}
-		res.end(JSON.stringify({ status: SUCCESSCODE, message: '数据更新成功' }))
+		// 成功响应
+		res.json({ status: SUCCESSCODE, message: '数据更新成功' })
 	})
 }
 
@@ -77,9 +95,11 @@ exports.edit = (req, res) => {
 exports.del = (req, res) => {
 	goodsModel.del(req, err => {
 		if (err) {
-			return res.end(JSON.stringify({ status: ERRORCODE, message: err.message }))
+			// 返回错误状态码和错误信息
+			return res.json({ status: ERRORCODE, message: err.message })
 		}
-		return res.end(JSON.stringify({ status: SUCCESSCODE, message: '数据删除成功' }))
+		// 成功响应
+		return res.json({ status: SUCCESSCODE, message: '数据删除成功' })
 	})
 }
 

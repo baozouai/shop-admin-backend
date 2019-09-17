@@ -3,32 +3,44 @@ const kits = require('../kits/kits.js');
 const path = require('path');
 const urlobj = require('url');
 const db = require('./db')
-let tbname = 'goods';
+const {execQueryCount} = require('./execQueryCount')
 //1 获取商品列表
 exports.getlist = (req, callback) => {
-
+	// 获取搜索商品名
 	let searchValue = req.query.searchvalue;
-	let sqlCount = `select count(1) as count from ${tbname}`;
-
+	// 创建数量查询语句
+	let sqlCount = `select count(1) as count from goods`;
+	// 如果有商品名
 	if (searchValue) {
+		// 根据商品名检索数据
 		sqlCount += ` where title like '%${searchValue}%' `;
 	}
 	//执行分页数据处理
 	execQueryCount(req, sqlCount, (err, data) => {
 		if (err) {
+			// 回调错误信息
 			return callback(err)
 		}
-		let sql = `select a.*,CONCAT('${kits.nodeServerDomain}',a.img_url) as imgurl,
-		c.title as categoryname from ${tbname} as a
-		inner join category c on (a.category_id = c.id)`;
+		// imgurl为主域名加上段路径 http://127.0.0.1:8899 + /upload/imgs/17N3ju-pQIEZvv1t-i8yjJNR.jpg
+		let sql = `select goods.*,
+				   CONCAT('${kits.nodeServerDomain}',goods.img_url) as imgurl,
+				   c.title as categoryname
+				   from goods
+				   inner join category c 
+				   on (goods.category_id = c.id)`;
+		// 如果有商品名
 		if (searchValue) {
-			sql += ` where a.title like '%${searchValue}%' `;
+			// 根据商品名检索数据
+			sql += ` where goods.title like '%${searchValue}%' `;
 		}
+		// 将数据从大倒小排列，skipCount为从索引skipCount开始查询pageSize条数据
 		sql += `order by id desc limit ${data.skipCount},${data.pageSize} `;
 		db.query(sql, (err, data1) => {
 			if (err) {
+				// 回调错误
 				callback(err)
 			}
+			// 成功回调数据
 			callback(null, { ...data, message: data1 })
 		});
 	});
@@ -36,6 +48,7 @@ exports.getlist = (req, callback) => {
 
 // 5 新增 商品
 exports.add = (req, callback) => {
+	// 初始化图片短路径
 	let shorturl = '';
 	// 封面图片
 	if (req.body.imgList && req.body.imgList.length > 0) {
@@ -46,8 +59,9 @@ exports.add = (req, callback) => {
 	if (req.body.fileList && req.body.fileList.length > 0) {
 		fileList = req.body.fileList;
 	}
+	// 创建插入语句
 	let sql = `
-				INSERT INTO ${tbname}
+				INSERT INTO goods
 				(				 
 				 category_id
 				 ,title
@@ -85,25 +99,29 @@ exports.add = (req, callback) => {
 				 ,${req.body.market_price} /* market_price - DECIMAL(9, 2)*/
 				 ,${req.body.sell_price} /* sell_price - DECIMAL(9, 2)*/
 				);`;
-
-	db.query(sql, (err,data) => {
+	// 插入商品数据
+	db.query(sql, (err, data) => {
 		if (err) {
+			// 回调错误信息
 			return callback(err);
 		}
-
-		if (fileList.length <= 0) {
+		if (fileList.length === 0) {
+			// 如果没有相册 直接返回
 			return callback(null)
 		}
-
-		// 实现附件的插入
+		// 实现相册的插入
 		let splitChar = ','; //values(),()多条数据之间的分隔符
+		// 初始化插入相册数据的字符串
 		let sqlValues = '';
-		let flng = fileList.length;
-		for (var i = 0; i < flng; i++) {
+		// 获取相册数量
+		let length = fileList.length;
+		// 拼接查询语句 最后要加上;
+		for (var i = 0; i < length; i++) {
 			let item = fileList[i];
-			if (i >= flng - 1) {
+			if (i >= length - 1) {
 				splitChar = ';'; //最后一条数据结束插入sql语句语法
 			}
+			// insertId是插入后返回的id
 			sqlValues += `
 		 					(
 							 ${data.insertId} /* goods_id - INT(10)*/
@@ -112,7 +130,7 @@ exports.add = (req, callback) => {
 							)${splitChar}
 		 					`;
 		};
-
+		// 创建插入相册的语句
 		let albumSql = `INSERT INTO albums
 							(
 							 goods_id
@@ -121,84 +139,87 @@ exports.add = (req, callback) => {
 							)
 							VALUES
 							${sqlValues}`;
-
+		// 插入相册数据库
 		db.query(albumSql, err => {
 			if (err) {
+				// 回调错误信息
 				return callback(err);
 			}
+			// 没有错误则直接返回null
 			callback(null)
 		});
 
 	});
 }
 
-// 编辑文章，获取老数据
+// 获取已存在的商品数据
 exports.getgoodsmodel = (req, callback) => {
-	// 获取参数	
+	// 获取商品id
 	let id = req.params.id;
 	// 查询商品sql语句
-	let articleSql = `select * from ${tbname} where id=${id}`;
-	db.query(articleSql, (err1, data1) => {
-		if (err1) {
-			return callback(err1);
+	let goodsSql = `select * from goods where id=${id}`;
+	db.query(goodsSql, (err, data) => {
+		if (err) {
+			// 回调错误
+			return callback(err);
 		}
-
 		// 判断是否有数据
-		if (data1.length == 0) {
+		if (data.length == 0) {
+			// 回调错误
 			return callback({ message: '参数异常，请检查传入参数的正确性' })
 		}
-
-		// 查询附件sql语句
-		let attacheSql = `select * from albums where goods_id=${id}`;
-		db.query(attacheSql, (err2, data2) => {
-			if (err2) {
-				return callback(err2);
+		// 查询相册sql语句
+		let albumsSql = `select * from albums where goods_id=${id}`;
+		// 查询相册
+		db.query(albumsSql, (err, data1) => {
+			if (err) {
+				// 回调错误
+				return callback(err);
 			}
-
 			let model = {};
-			let artmodel = data1[0];
+			let goodsmodel = data[0];
 			let fileList = [];
-			for (var i = 0; i < data2.length; i++) {
-				let attache = data2[i];
+			// 组合fileList
+			data1.forEach(album => {
 				fileList.push({
-					uid: attache.id,
-					name: path.basename(attache.thumb_path),
-					url: urlobj.resolve(kits.nodeServerDomain, attache.thumb_path),
-					shorturl: attache.thumb_path
-				});
-			};
-
+					uid: album.id,
+					name: path.basename(album.thumb_path),
+					url: urlobj.resolve(kits.nodeServerDomain, album.thumb_path),
+					shorturl: album.thumb_path
+				})
+			})
 			//组合返回对象
-			model.title = artmodel.title;
-			model.sub_title = artmodel.sub_title;
-			model.goods_no = artmodel.goods_no;
-			model.category_id = artmodel.category_id.toString();
-			model.stock_quantity = artmodel.stock_quantity;
-			model.market_price = artmodel.market_price;
-			model.sell_price = artmodel.sell_price;
-			model.status = artmodel.status == 1;
-			model.is_top = artmodel.is_top == 1;
-			model.is_hot = artmodel.is_hot == 1;
-			model.zhaiyao = artmodel.zhaiyao;
-			model.content = artmodel.content;
+			model.title = goodsmodel.title;
+			model.sub_title = goodsmodel.sub_title;
+			model.goods_no = goodsmodel.goods_no;
+			model.category_id = goodsmodel.category_id.toString();
+			model.stock_quantity = goodsmodel.stock_quantity;
+			model.market_price = goodsmodel.market_price;
+			model.sell_price = goodsmodel.sell_price;
+			model.status = goodsmodel.status === 1;
+			model.is_top = goodsmodel.is_top === 1;
+			model.is_hot = goodsmodel.is_hot === 1;
+			model.zhaiyao = goodsmodel.zhaiyao;
+			model.content = goodsmodel.content;
 			model.imgList = [{
-				name: path.basename(artmodel.img_url)
-				, url: urlobj.resolve(kits.nodeServerDomain, artmodel.img_url)
-				, shorturl: artmodel.img_url
+				name: path.basename(goodsmodel.img_url)
+				, url: urlobj.resolve(kits.nodeServerDomain, goodsmodel.img_url)
+				, shorturl: goodsmodel.img_url
 			}];
 			model.fileList = fileList;
-
+			// 成功回调数据
 			callback(null, model)
 
-		}); //attache查询回调结束
+		}); //albums查询回调结束
 
-	}); //article查询回调结束
+	}); //goods查询回调结束
 }
 
 // 7 编辑商品
 exports.edit = (req, callback) => {
-
-	let artid = req.params.id;
+	// 获取商品id
+	let goodsid = req.params.id;
+	// 初始化短路径
 	let shorturl = '';
 	// 封面图片
 	if (req.body.imgList && req.body.imgList.length > 0) {
@@ -209,7 +230,8 @@ exports.edit = (req, callback) => {
 	if (req.body.fileList && req.body.fileList.length > 0) {
 		fileList = req.body.fileList;
 	}
-	let sql = `UPDATE ${tbname} 
+	// 创建更新语句
+	let sql = `UPDATE goods 
 				SET				  
 				  category_id = ${req.body.category_id}
 				 ,title = '${req.body.title}'	
@@ -227,34 +249,36 @@ exports.edit = (req, callback) => {
 				 ,is_hot = ${req.body.is_hot} 
 				 ,update_time = NOW() 				 		
 				WHERE
-				  id = ${artid};`;
-	db.query(sql, (err, data) => {
+				  id = ${goodsid};`;
+	db.query(sql, err => {
 		if (err) {
+			// 回调错误
 			return callback(err);
 		}
-		let delsql = `delete from albums 
-		 					where goods_id =${artid};`;
+		// 创建删除语句
+		let delsql = `delete from albums where goods_id =${goodsid};`;
 		db.query(delsql, err1 => {
 			if (err1) {
+				// 回调错误
 				return callback(err1);
 			}
 			// 实现相册的更新
 			let splitChar = ','; //values(),()多条数据之间的分隔符
 			let sqlValues = '';
-			let flng = fileList.length;
-			for (var i = 0; i < flng; i++) {
+			let length = fileList.length;
+			for (var i = 0; i < length; i++) {
 				let item = fileList[i];
-				if (i >= flng - 1) {
+				if (i >= length - 1) {
 					splitChar = ';'; //最后一数据结束插入sql语句语法
 				}
 				sqlValues += `(
-							 ${artid} /* goods_id - INT(10)*/
+							 ${goodsid} /* goods_id - INT(10)*/
 							 ,'${item.shorturl}' /* thumb_path - VARCHAR(255)*/
 							 ,NOW() /* add_time - DATETIME*/
 							)${splitChar}`;
 			};
-
-			let attacheSql = `
+			// 创建相册插入语句
+			let albumsSql = `
 		 					INSERT INTO albums
 							(
 							 goods_id
@@ -263,65 +287,44 @@ exports.edit = (req, callback) => {
 							)
 							VALUES
 							${sqlValues}`;
-
-			db.query(attacheSql, err2 => {
+			// 插入相册
+			db.query(albumsSql, err2 => {
 				if (err2) {
+					// 回调错误
 					return callback(err2);
 				}
-
+				// 成功回调
 				callback(null)
 			});
-
 		});
 	});
 }
 
 // 5 删除数据
 exports.del = (req, callback) => {
+	// 获取所有商品id
 	let goodsIds = req.params.ids;
-	let sql = `delete from ${tbname} where id in(${goodsIds})`;
+	// 创建删除语句
+	let sql = `delete from goods where id in(${goodsIds})`;
+	// 删除商品
 	db.query(sql, err => {
 		if (err) {
+			// 回调错误
 			return callback(err);
 		}
-		let delsql = `delete from albums 
-		 					where goods_id in (${goodsIds});`;
+		// 创建删除相册语句
+		let delsql = `delete from albums where goods_id in (${goodsIds});`;
+		// 删除对应相册
 		db.query(delsql, err => {
 			if (err) {
+				// 回调错误
 				return callback(err);
 			}
 		})
-
+		// 删除成功
 		callback(null)
 	});
 }
 
-//辅助方法获取分页总条数
-function execQueryCount(req, sql, callback) {
-	// 先设置默认值
-	let pageIndex = 1;
-	let pageSize = 10;
-	// 判断是否有页码
-	if (req.query.pageIndex) {
-		pageIndex = parseInt(req.query.pageIndex);
-	}
-	// 判断是否有每页数量
-	if (req.query.pageSize) {
-		pageSize = parseInt(req.query.pageSize);
-	}
-	// 如果是空值的话，返回错误
-	if (isNaN(req.query.pageIndex) || isNaN(req.query.pageSize)) {
-		callback({ message: '参数错误：分页参数pageIndex和pageSize必须是数字' })
-		return;
-	}
-	let skipCount = (pageIndex - 1) * (pageSize - 0);
-	db.query(sql, (err, data) => {
-		if (err) {
-			callback(err)
-		}
-		//回调继续处理其他业务
-		callback(null, { totalcount: data[0].count, pageIndex, pageSize, skipCount })
-	});
-}
 
 

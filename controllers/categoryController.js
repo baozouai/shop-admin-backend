@@ -7,8 +7,10 @@ const ERRORCODE = 1;
 exports.getlist = (req, res) => {
 	categoryModel.getlist((err, data) => {
 		if (err) {
+			// 返回错误状态码和错误信息
 			return res.end(JSON.stringify({status: ERRORCODE, message: err.message}))
 		}
+		// 成功返回数据
 		res.end(JSON.stringify({status: SUCCESSCODE, message: data}))
 	})
 }
