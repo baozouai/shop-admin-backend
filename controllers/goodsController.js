@@ -89,11 +89,13 @@ module.exports = {
 	},
 	// 6 删除数据
 	del(req, res) {
+
 		goodsModel.del(req, err => {
 			if (err) {
 				// 返回错误状态码和错误信息
 				return res.json({ status: ERRORCODE, message: err.message })
 			}
+
 			// 成功响应
 			return res.json({ status: SUCCESSCODE, message: '数据删除成功' })
 		})

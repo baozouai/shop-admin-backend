@@ -12,11 +12,10 @@ const orderRoute = require('./routes/orderRoute.js');
 let app = express();
 // 监听端口
 app.listen(8899, () => {
-	console.log('api服务已启动, :http://127.0.0.1:8899');
+	console.log('api服务已启动: http://127.0.0.1:8899');
 });
 // 设置静态资源路径
 app.use('/upload', express.static('upload'));
-
 // 自动解析请求报文
 app.use(bodyParser());
 // 设置session (后台管理页面专用)
@@ -41,4 +40,3 @@ app.use('/admin', accountRoute);
 app.use('/admin', categoryRoute);
 app.use('/admin', goodsRoute);
 app.use('/admin', orderRoute);
-

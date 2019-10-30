@@ -20,7 +20,7 @@ module.exports = {
             return;
         }
         // skipCount为从索引skipCount开始查询pageSize条数据
-        let skipCount = (pageIndex - 1) * (pageSize - 0);
+        let skipCount = (pageIndex - 1) * pageSize;
         db.query(sql, (err, data) => {
             if (err) {
                 // 回调错误

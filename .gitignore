@@ -16,3 +16,4 @@ dist
 lib
 .idea
 .svn
+.DS_Store

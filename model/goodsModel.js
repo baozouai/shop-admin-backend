@@ -302,6 +302,7 @@ module.exports = {
 	del(req, callback) {
 		// 获取所有商品id
 		let goodsIds = req.params.ids;
+		console.log(goodsIds);
 		// 创建删除语句
 		let sql = `delete from goods where id in(${goodsIds})`;
 		// 删除商品
@@ -314,6 +315,7 @@ module.exports = {
 			let delsql = `delete from albums where goods_id in (${goodsIds});`;
 			// 删除对应相册
 			db.query(delsql, err => {
+				
 				if (err) {
 					// 回调错误
 					return callback(err);
